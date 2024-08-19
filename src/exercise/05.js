@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// checks if the user is idle or not based on these event types
-const activityEvents = [
+// Default activity events
+const defaultActivityEvents = [
   "mousedown",
   "mousemove",
   "keydown",
@@ -9,29 +9,37 @@ const activityEvents = [
   "touchstart",
 ];
 
-export function useIdle(ms, eventTypes = activityEvents) {
+export function useIdle(ms, eventTypes = defaultActivityEvents) {
   const [isIdle, setIsIdle] = useState(false);
+  const eventTypesRef = useRef(eventTypes); // Use a ref to store eventTypes
 
   useEffect(() => {
+    // Update ref when eventTypes change
+    eventTypesRef.current = eventTypes;
+
+    // Set the initial timeout to mark as idle
     let interval = setTimeout(() => setIsIdle(true), ms);
 
+    // Event handler to reset idle timer
     function setActive() {
       setIsIdle(false);
       clearTimeout(interval);
       interval = setTimeout(() => setIsIdle(true), ms);
     }
 
-    for (const type of eventTypes) {
+    // Attach event listeners
+    for (const type of eventTypesRef.current) {
       window.addEventListener(type, setActive);
     }
 
+    // Cleanup function
     return function cleanup() {
-      for (const type of eventTypes) {
+      for (const type of eventTypesRef.current) {
         window.removeEventListener(type, setActive);
       }
       clearTimeout(interval);
     };
-  }, [ms, eventTypes]);
+  }, [ms]); // Only depend on ms, not eventTypes
 
   return isIdle;
 }
